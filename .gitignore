@@ -1,0 +1,28 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+icon-downloader
+icon-grib-downloader
+icon-grib-downloader-*
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories
+vendor/
+
+# Output folders from test runs
+data/
+downloads/
+grib/
+output/
+
+# OS specific files
+.DS_Store
+Thumbs.db

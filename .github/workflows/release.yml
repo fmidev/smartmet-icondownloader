@@ -1,0 +1,76 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags like v1.0.0, v0.1.0, etc.
+
+jobs:
+  build:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21' # Specify your Go version
+          
+      - name: Get tag version
+        id: get_tag
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          
+      - name: Build for Linux (amd64)
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o icon-grib-downloader-linux-amd64 -ldflags="-X 'main.version=${{ env.VERSION }}'"
+      
+      - name: Build for Windows (amd64)
+        run: |
+          GOOS=windows GOARCH=amd64 go build -o icon-grib-downloader-windows-amd64.exe -ldflags="-X 'main.version=${{ env.VERSION }}'"
+      
+      - name: Build for macOS (amd64)
+        run: |
+          GOOS=darwin GOARCH=amd64 go build -o icon-grib-downloader-darwin-amd64 -ldflags="-X 'main.version=${{ env.VERSION }}'"
+      
+      - name: Build for macOS (arm64)
+        run: |
+          GOOS=darwin GOARCH=arm64 go build -o icon-grib-downloader-darwin-arm64 -ldflags="-X 'main.version=${{ env.VERSION }}'"
+          
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ICON GRIB Downloader ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            icon-grib-downloader-linux-amd64
+            icon-grib-downloader-windows-amd64.exe
+            icon-grib-downloader-darwin-amd64
+            icon-grib-downloader-darwin-arm64
+          body: |
+            # ICON GRIB Downloader ${{ env.VERSION }}
+            
+            A tool for downloading GRIB files from the DWD's ICON model.
+            
+            ## Supported Platforms
+            - Linux (amd64)
+            - Windows (amd64)
+            - macOS (Intel/amd64)
+            - macOS (Apple Silicon/arm64)
+            
+            ## Usage
+            
+            ```bash
+            # Download the latest model run
+            ./icon-grib-downloader -latest
+            
+            # Download a specific model run with parameters
+            ./icon-grib-downloader -run 00 -params t_2m,clct,pmsl
+            
+            # For more options
+            ./icon-grib-downloader -help
+            ```
