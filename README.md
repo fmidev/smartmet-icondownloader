@@ -66,6 +66,7 @@ go build -o icon-downloader
 | `-latest` | Download the latest available model run | |
 | `-params list` | Comma-separated list of parameters to download | All parameters |
 | `-outdir path` | Directory to save files | Current directory |
+| `-level type` | Filter by level type: `single`, `pressure`, or `model` | All level types |
 | `-concurrent N` | Maximum number of concurrent downloads | 5 |
 | `-retries N` | Maximum number of retry attempts | 5 |
 | `-verbose` | Enable detailed progress messages | false |

@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  icon-grib-downloader:
+    image: ghcr.io/yourusername/icon-grib-downloader:latest
+    volumes:
+      - ./data:/data
+    # Example command to download the latest model run
+    command: ["-latest", "-verbose"]
+    # Uncomment to run on a schedule with cron
+    # restart: unless-stopped

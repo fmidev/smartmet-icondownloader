@@ -1,0 +1,48 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: icon-grib-downloader
+  labels:
+    app: icon-grib-downloader
+spec:
+  # Schedule to run every 6 hours - adjust as needed
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid  # Don't allow concurrent jobs
+  failedJobsHistoryLimit: 3  # Keep history of 3 failed jobs
+  successfulJobsHistoryLimit: 3  # Keep history of 3 successful jobs
+  jobTemplate:
+    spec:
+      backoffLimit: 2  # Number of retries before marking job as failed
+      template:
+        metadata:
+          labels:
+            app: icon-grib-downloader
+        spec:
+          containers:
+          - name: icon-grib-downloader
+            image: ghcr.io/yourusername/icon-grib-downloader:latest
+            imagePullPolicy: IfNotPresent
+            args:
+              - "-latest"
+              - "-verbose"
+              - "-concurrent"
+              - "5"
+              - "-retries"
+              - "3"
+              - "-outdir"
+              - "/data"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "250m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            volumeMounts:
+            - name: grib-data
+              mountPath: /data
+          volumes:
+          - name: grib-data
+            persistentVolumeClaim:
+              claimName: grib-data-pvc  # Reference to a PVC that you need to create
+          restartPolicy: OnFailure
