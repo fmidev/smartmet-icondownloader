@@ -69,12 +69,14 @@ func main() {
 	log.Println("Starting ICON GRIB downloader")
 
 	// Validate level type if specified
-	if *levelType != "" && *levelType != "single" && *levelType != "pressure" && *levelType != "model" {
-		log.Printf("Warning: Invalid level type '%s'. Valid values are: single, pressure, model", *levelType)
-		log.Printf("Downloading all level types instead")
-		*levelType = ""
-	} else if *levelType != "" {
-		log.Printf("Filtering files by level type: %s-level", *levelType)
+	if *levelType != "" {
+		if *levelType != "single" && *levelType != "pressure" && *levelType != "model" {
+			log.Printf("Warning: Invalid level type '%s'. Valid values are: single, pressure, model", *levelType)
+			log.Printf("Downloading all level types instead")
+			*levelType = ""
+		} else {
+			log.Printf("Filtering files by level type: %s-level", *levelType)
+		}
 	}
 
 	// Create output directory if it doesn't exist
@@ -290,6 +292,7 @@ func getAvailableParameters(runURL string) ([]Parameter, error) {
 // getGribFiles returns a list of GRIB files for a parameter
 func getGribFiles(paramURL string) ([]string, error) {
 	var files []string
+	var filteredFiles []string
 
 	resp, err := http.Get(paramURL)
 	if err != nil {
@@ -306,33 +309,12 @@ func getGribFiles(paramURL string) ([]string, error) {
 		return nil, err
 	}
 
+	// Find all .grib2.bz2 files first
 	var f func(*html.Node)
 	f = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, a := range n.Attr {
 				if a.Key == "href" && strings.HasSuffix(a.Val, ".grib2.bz2") {
-					// Filter by level type if specified
-					if *levelType != "" {
-						filename := a.Val
-						// Check if filename contains the specified level type
-						switch *levelType {
-						case "single":
-							if !strings.Contains(filename, "single-level") {
-								break
-							}
-						case "pressure":
-							if !strings.Contains(filename, "pressure-level") {
-								break
-							}
-						case "model":
-							if !strings.Contains(filename, "model-level") {
-								break
-							}
-						default:
-							// If invalid level type specified, log warning but don't filter
-							log.Printf("Warning: Unknown level type '%s', valid values are: single, pressure, model", *levelType)
-						}
-					}
 					files = append(files, a.Val)
 				}
 			}
@@ -342,6 +324,32 @@ func getGribFiles(paramURL string) ([]string, error) {
 		}
 	}
 	f(doc)
+
+	// Apply level type filtering if specified
+	if *levelType != "" {
+		for _, file := range files {
+			levelString := ""
+			switch *levelType {
+			case "single":
+				levelString = "single-level"
+			case "pressure":
+				levelString = "pressure-level"
+			case "model":
+				levelString = "model-level"
+			}
+
+			if strings.Contains(file, levelString) {
+				filteredFiles = append(filteredFiles, file)
+			}
+		}
+
+		if *verbose {
+			log.Printf("Filtered %d files down to %d %s-level files",
+				len(files), len(filteredFiles), *levelType)
+		}
+
+		return filteredFiles, nil
+	}
 
 	return files, nil
 }
@@ -358,6 +366,9 @@ func downloadGribFiles(param Parameter, runTime string) error {
 	}
 
 	if len(files) == 0 {
+		if *levelType != "" {
+			return fmt.Errorf("no %s-level GRIB files found for parameter %s", *levelType, param.Name)
+		}
 		return fmt.Errorf("no GRIB files found for parameter %s", param.Name)
 	}
 
